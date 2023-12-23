@@ -1,0 +1,96 @@
+import pdb
+#pdb.set_trace()
+import requests
+from binance_d.exception.binanceapiexception import BinanceApiException
+from binance_d.impl.utils import *
+# from binance_d.base.printobject import *
+
+
+def check_response(json_wrapper):
+    if json_wrapper.contain_key("success"):
+        success = json_wrapper.get_boolean("success")
+        if success is False:
+            err_code = json_wrapper.get_int_or_default("code", "")
+            err_msg = json_wrapper.get_string_or_default("msg", "")
+            if err_code == "":
+                raise BinanceApiException(BinanceApiException.EXEC_ERROR, "[Executing] " + err_msg)
+            else:
+                raise BinanceApiException(BinanceApiException.EXEC_ERROR, "[Executing] " + str(err_code) + ": " + err_msg)
+    elif json_wrapper.contain_key("code"):
+        code = json_wrapper.get_int("code")
+        msg = json_wrapper.get_string_or_default("msg", "")
+        if code != 200:
+            raise BinanceApiException(BinanceApiException.EXEC_ERROR, "[Executing] " + str(code) + ": " + msg)
+
+def get_limits_usage(response):
+    limits = {}
+    limits_headers = ["X-MBX-USED-WEIGHT-", "X-MBX-ORDER-COUNT-" ]  # Limit headers to catch
+    for key,value in response.headers.items():
+        if any([key.startswith(h) for h in limits_headers]):
+            limits[key] = value
+    return limits
+
+
+
+def call_sync(request):
+    #pdb.set_trace()
+    
+    if request.method == "GET":
+        response = requests.get(request.host + request.url, headers=request.header)
+        limits = get_limits_usage(response)
+        json_wrapper = parse_json_from_string(response.text)
+        #print("in impl.restapiinvoker.call_sync GET: " + response.text + "|||")
+        check_response(json_wrapper)
+        return (request.json_parser(json_wrapper),limits)
+    elif request.method == "POST":
+        print("in impl.restapiinvoker.call_sync POST BEGIN")
+        response = requests.post(request.host + request.url, headers=request.header)
+        print("in impl.restapiinvoker.call_sync POST response.text, attempt number 1: " + response.text + "|||")
+        # salio esto un dia en una caida abrupta de precio:
+        # in impl.restapiinvoker.call_sync POST: {"timestamp":1663252512015,"path":"/dapi/v1/order","msg":"Unknown error, please check your request or try again later."}|||
+ 
+        if "error" in str(response.text):
+            print("in impl.restapiinvoker.call_sync POST error detected in POST response.text, attempt number 2")
+            response = requests.post(request.host + request.url, headers=request.header)
+            print("in impl.restapiinvoker.call_sync POST response.text (attempt number 2): " + response.text + "|||") 
+            if "error" in str(response.text):
+                print("in impl.restapiinvoker.call_sync POST error detected in POST response.text, attempt number 3")
+                response = requests.post(request.host + request.url, headers=request.header)
+                print("in impl.restapiinvoker.call_sync POST response.text (attempt number 3): " + response.text + "|||") 
+                if "error" in str(response.text):
+                    print("in impl.restapiinvoker.call_sync POST error detected in POST response.text, attempt number 3")
+                else:
+                    print("in impl.restapiinvoker.call_sync POST response.text OK in attempt number 3: " + response.text + "|||")
+            else:
+                print("in impl.restapiinvoker.call_sync POST response.text OK in attempt number 2: " + response.text + "|||")
+        else:
+            print("in impl.restapiinvoker.call_sync POST response.text OK in attempt number 1: " + response.text + "|||")
+
+        limits = get_limits_usage(response)
+        print("in impl.restapiinvoker.call_sync POST, limits:", str(limits))
+        json_wrapper = parse_json_from_string(response.text)
+        #print(response.text)
+        check_response(json_wrapper)
+        print("in impl.restapiinvoker.call_sync call (request.json_parser(json_wrapper),limits)")
+       # return (request.json_parser(json_wrapper),limits)
+        damian = request.json_parser(json_wrapper)
+        #print("in impl.restapiinvoker.call_sync POST return END")
+        return (damian, limits)
+    elif request.method == "DELETE":
+        response = requests.delete(request.host + request.url, headers=request.header)
+        limits = get_limits_usage(response)
+        json_wrapper = parse_json_from_string(response.text)
+        #print(response.text)
+        #print("in impl.restapiinvoker.call_sync DELETE: " + response.text + "|||")
+        check_response(json_wrapper)
+        return (request.json_parser(json_wrapper),limits)
+    elif request.method == "PUT":
+        response = requests.put(request.host + request.url, headers=request.header)
+        limits = get_limits_usage(response)
+        json_wrapper = parse_json_from_string(response.text)
+        #print(response.text)
+        #print("in impl.restapiinvoker.call_sync PUT: " + response.text + "|||")
+        check_response(json_wrapper)
+        return (request.json_parser(json_wrapper),limits)
+
+

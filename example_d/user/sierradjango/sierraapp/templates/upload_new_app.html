@@ -1,0 +1,16 @@
+{% extends 'base_masking.html' %}
+
+{% block content %}
+
+<h2>upload gid report</h2>
+
+<div>
+    <form method="POST" enctype="multipart/form-data" onsubmit="buttondamian.disabled=true; return true;">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" name="buttondamian">upload</button>
+    </form>
+
+</div>
+
+{% endblock %}

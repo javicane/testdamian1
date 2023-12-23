@@ -1,0 +1,27 @@
+{% extends 'base_masking.html' %}
+
+{% block content %}
+<h2>create masking job</h2>
+
+<table>
+    <tr>
+        <td>local file name </td>
+        <td>
+            {%if localfilename %}
+            {{ localfilename }}
+            {% endif %}
+        </td>
+    </tr>
+</table>
+
+<p></p>
+
+<div>
+    <h3>you can </h3>
+    <form method="POST" enctype="multipart/form-data" onsubmit="buttondamian.disabled=true; return true;">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" name="buttondamian">create masking job</button>
+    </form>
+</div>
+{% endblock content %}
